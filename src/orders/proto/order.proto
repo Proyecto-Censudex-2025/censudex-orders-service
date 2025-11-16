@@ -1,0 +1,107 @@
+syntax = "proto3";
+package orders;
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+//Servicio encargado de los metodos
+service OrdersService {
+  // POST /orders 
+  rpc CreateOrder (CreateOrderRequest) returns (OrderResponse);
+
+  // GET /orders 
+  rpc FindAllOrders (QueryOrderRequest) returns (FindAllOrdersResponse);
+
+  // GET /orders/:id 
+  rpc FindOneOrder (FindOneOrderRequest) returns (OrderResponse);
+
+  // PUT /orders/:id/status 
+  rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (OrderResponse);
+
+  // PATCH /orders/:id (Cancel)
+  rpc CancelOrder (CancelOrderRequest) returns (OrderResponse);
+
+  // GET /orders/client/:clientId/history
+  rpc GetClientHistory (GetClientHistoryRequest) returns (FindAllOrdersResponse);
+  
+}
+
+//Peticion de la cantidad de items
+message CreateOrderItemRequest {
+  string productId = 1;
+  int32 quantity = 2;
+}
+
+//Peticion de crear una orden
+message CreateOrderRequest {
+  string clientId = 1;
+  string clientName = 2;
+  string clientEmail = 3;
+  string shippingAddress = 4;
+  repeated CreateOrderItemRequest items = 5;
+}
+
+//Peticion de orden
+message QueryOrderRequest {
+  optional string orderId = 1;
+  optional string clientId = 2;
+  optional string clientName = 3;
+  optional string status = 4;
+  optional string startDate = 5;
+  optional string endDate = 6;
+}
+
+//Peticion de una orden
+message FindOneOrderRequest {
+  string id = 1;
+}
+
+// Peticion del estado de una orden
+message UpdateOrderStatusRequest {
+  string id = 1; // Del @Param(':id')
+  string status = 2;
+  optional string trackingNumber = 3;
+}
+
+// Peticion de cancelación de una orden
+message CancelOrderRequest {
+  string id = 1; // Del @Param(':id')
+  optional string cancellationReason = 2;
+}
+//Peticion del historial de un cliente
+message GetClientHistoryRequest {
+  string clientId = 1;
+}
+//Respuesta de una orden en especifica
+message OrderItemResponse {
+  string id = 1;
+  string productId = 2;
+  string productName = 3;
+  double unitPrice = 4; // decimal se mapea a double
+  int32 quantity = 5;
+  double subtotal = 6;
+  optional string productImageUrl = 7;
+  google.protobuf.Timestamp createdAt = 8;
+}
+//Respuesta de una orden
+message OrderResponse {
+  string id = 1;
+  string clientId = 2;
+  string clientName = 3;
+  string clientEmail = 4;
+  string status = 5;
+  double total = 6;
+  string shippingAddress = 7;
+  optional string trackingNumber = 8;
+  optional string cancellationReason = 9;
+  optional google.protobuf.Timestamp shippedAt = 10;
+  optional google.protobuf.Timestamp deliveredAt = 11;
+  optional google.protobuf.Timestamp cancelledAt = 12;
+  repeated OrderItemResponse items = 13;
+  google.protobuf.Timestamp createdAt = 14;
+  google.protobuf.Timestamp updatedAt = 15;
+}
+
+//Respuesta de todos las ordenes
+message FindAllOrdersResponse {
+  repeated OrderResponse orders = 1;
+}
