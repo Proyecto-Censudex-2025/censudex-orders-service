@@ -1,98 +1,151 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Censudex - Orders Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Servicio de administración de pedidos.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Descripción
 
-## Description
+El Orders Service es uno de los microservicios que componen la arquitectura de Censudex. Es el módulo responsable de gestionar el ciclo de vida completo de los pedidos, desde su creación y validación de stock (vía eventos) hasta las notificaciones por correo electrónico.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Arquitectura
 
-## Project setup
+Este proyecto utiliza una Arquitectura Modular (NestJS) y se comunica con otros servicios mediante gRPC para solicitudes síncronas y RabbitMQ para eventos asíncronos.
 
-```bash
-$ npm install
+## Estructura del proyecto
+
+```
+censudex-orders-service/
+├── src/
+│   ├── orders/
+│   │   ├── controllers/  # Controladores gRPC (orders.controller.ts)
+│   │   ├── decorators/   # Decoradores personalizados (@GrpcUser)
+│   │   ├── dto/          # DTOs (CreateOrderDto, UpdateOrderStatusDto)
+│   │   ├── entities/     # Entidades de TypeORM (Order, OrderItem)
+│   │   ├── modules/      # Módulos de NestJS (AppModule, OrdersModule)
+│   │   ├── proto/        # Definición .proto (order.proto)
+│   │   ├── services/     # Lógica de negocio (Order, RabbitMQ, SendGrid)
+│   │   └── seed/         # Seeder de base de datos
+├── .env                 # Variables de entorno
+├── docker-compose.yml   # Configuración Docker
+├── Dockerfile           # Imagen de la aplicación
+├── nest-cli.json        # Config. de NestJS CLI (para copiar .proto)
+└── tsconfig.json        # Config. de TypeScript
 ```
 
-## Compile and run the project
+## Flujo de los datos
 
+El servicio recibe solicitudes gRPC (usualmente desde un API Gateway) y también emite y consume eventos de RabbitMQ.
+
+```mermaid
+graph TD
+    A[API Gateway] -- gRPC --> B[Controller gRPC]
+    B --> C[Service Layer OrdersService]
+    C -- Escribe/Lee --> D[TypeORM]
+    D --> E[MySQL Database]
+    C -- Publica Evento (order.created) --> F[RabbitMQ]
+    C -- Envía Email (Confirmación) --> G[SendGrid]
+    F -- Consume Evento (order.failed.stock) --> C
+```
+## Tecnologías usadas
+
+### Tecnologías principales
+
+- **NestJS (Node.js 20)**: Plataforma de desarrollo del microservicio.
+- **TypeScript**: Lenguaje principal.
+- **gRPC**: Protocolo para la comunicación síncrona entre servicios.
+- **TypeORM**: ORM para las operaciones de base de datos.
+- **MySQL**: Base de datos relacional para los pedidos.
+- **RabbitMQ**: Agente de mensajes (Message Broker) para la comunicación asíncrona (eventos de stock).
+- **SendGrid**: Servicio de envío de correos transaccionales.
+
+### Herramientas de desarrollo
+- **Postman (gRPC) o grpcurl**: Herramientas para probar endpoints gRPC.
+
+### DevOps y despliegue
+- **Docker / Docker Compose**: Contenerización.
+- **GitHub**: Control de versiones.
+
+## Requisitos
+
+- [.Node.js v20 o superior](https://nodejs.org/en)
+- [Docker y Docker compose](https://www.docker.com/products/docker-desktop/)
+- [Git](https://git-scm.com/)
+- Un cliente gRPC como [Postman](https://www.postman.com/) o [grpcurl](https://github.com/fullstorydev/grpcurl).
+
+## Instalación y configuración
+
+## 1.Clonar repositorio
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+$ git clone https://github.com/TU_ORGANIZACION/censudex-orders-service.git
+cd censudex-orders-service
 ```
 
-## Run tests
+## 2.Configuración de Desarrollo (Recomendado)
+Este método ejecuta las dependencias (MySQL, RabbitMQ) en Docker, y la aplicación NestJS localmente con hot-reloading para un desarrollo más rápido.
+
+### 2.1. Configurar variables de entorno
+Crea un archivo .env en la raíz del proyecto (/censudex-orders-service/.env) y configúralo para que apunte a localhost, ya que la aplicación correrá localmente.
 
 ```bash
-# unit tests
-$ npm run test
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=rootpassword
+DB_DATABASE=censudex_orders
 
-# e2e tests
-$ npm run test:e2e
+# SendGrid Configuration
+SENDGRID_API_KEY=SG.tu.api.key
+SENDGRID_FROM_EMAIL=tu_email_verificado@dominio.com
 
-# test coverage
-$ npm run test:cov
+# RabbitMQ Configuration
+RABBITMQ_URL=amqp://guest:guest@localhost:5672
+
+# Application Configuration
+PORT=3004
+GRPC_PORT=50051
+NODE_ENV=development
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 2.2 Levantar dependencias
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose up -d
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 2.3 Instalar dependencias
 
-## Resources
+```bash
+# Instalar paquetes de Node.js
+npm install
 
-Check out a few resources that may come in handy when working with NestJS:
+# Ejecutar seeder (si es necesario)
+npm run seed
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# Ejecutar la app en modo "watch" (hot-reload)
+npm run start:dev
+```
 
-## Support
+## Data Seeder
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+El proyecto incluye un seeder con datos de prueba .
 
-## Stay in touch
+- 5 Pedidos de ejemplo (con diferentes estados).
+- Múltiples items de pedido asociados.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Este seeder **no se ejecuta automáticamente**.
 
-## License
+```bash
+npm run seed
+```
+## API Endpoints (gRPC)
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Este servicio expone métodos gRPC (definidos en orders.proto) en el puerto GRPC_PORT (ej. 50051). No expone endpoints REST/HTTP.
+
+| Método gRPC | Descripción   |
+|------|----------|
+| CreateOrder  | Crea un nuevo pedido |
+| FindAllOrders   | Obtiene un listado de pedidos (filtrable) |
+| FindOneOrder  | Obtiene un pedido por su ID |
+| UpdateOrderStatus | Actualiza el estado de un pedido (Admin) | 
+| CancelOrder | Cancela un pedido (Cliente o Admin) | 
+| GetClientHistory | Obtiene el historial de pedidos de un cliente.|
