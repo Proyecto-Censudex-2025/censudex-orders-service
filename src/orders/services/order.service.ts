@@ -409,12 +409,27 @@ export class OrdersService implements OnModuleInit {
    */
   private async handleFailedStock(data: any): Promise<void> {
     try {
+      const messagePayload = data.message;
+
+      if (!messagePayload) {
+        this.logger.error('Error al manejar fallo de stock: Objeto "message" no encontrado en el payload', JSON.stringify(data));
+        return;
+      }
+
+      const orderId = messagePayload.orderId || messagePayload.OrderId;
+
+      if (!orderId) {
+        this.logger.error('Error al manejar fallo de stock: orderId no encontrado en el objeto "message"', JSON.stringify(messagePayload));
+        return;
+      }
+      
       const order = await this.orderRepository.findOne({ 
-        where: { id: data.orderId, isDeleted: false },
+        where: { id: orderId, isDeleted: false },
         relations: ['items'],
       });
 
       if (!order || order.status !== 'pendiente') {
+        this.logger.warn(`Orden ${orderId} no encontrada o ya no está pendiente. Omitiendo cancelación.`);
         return;
       }
 
